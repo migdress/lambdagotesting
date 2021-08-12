@@ -1,0 +1,35 @@
+service: user-create
+frameworkVersion: '2'
+
+custom:
+  active: ${file(../conf.${self:provider.stage}.yml):conf}
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  runtime: go1.x
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE_USER: ${self:custom.active.dynamodbTableUser}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:Query
+        - dynamodb:PutItem
+      Resource:
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.active.awsAccount}:table/${self:custom.active.dynamodbTableUser}
+        - arn:aws:dynamodb:${self:provider.region}:${self:custom.active.awsAccount}:table/${self:custom.active.dynamodbTableUser}/index/*
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./bin/**
+
+functions:
+  v1:
+    handler: bin/v1
+    events:
+      - http:
+          path: v1
+          method: post
